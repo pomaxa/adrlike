@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Decisions{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Decisions <span class="badge text-bg-secondary">{{ decisions|length }}</span></h1>
+    <a class="btn btn-primary" href="{{ path('app_decision_new') }}">+ New decision</a>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+    <div class="col-auto">
+        <input type="text" name="q" value="{{ filters.q }}" class="form-control" placeholder="Search change / comment">
+    </div>
+    <div class="col-auto">
+        <select name="product" class="form-select">
+            <option value="">Product (any)</option>
+            {% for p in enum('App\\Enum\\Product').cases %}
+                <option value="{{ p.value }}" {{ filters.product == p.value ? 'selected' }}>{{ p.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="department" class="form-select">
+            <option value="">Department (any)</option>
+            {% for d in enum('App\\Enum\\Department').cases %}
+                <option value="{{ d.value }}" {{ filters.department == d.value ? 'selected' }}>{{ d.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="status" class="form-select">
+            <option value="">Follow-up (any)</option>
+            {% for s in enum('App\\Enum\\FollowUpStatus').cases %}
+                <option value="{{ s.value }}" {{ filters.status == s.value ? 'selected' }}>{{ s.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-primary" type="submit">Filter</button>
+        <a class="btn btn-outline-secondary" href="{{ path('app_decision_index') }}">Reset</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Dept</th>
+                    <th>Submitted by</th>
+                    <th>Change</th>
+                    <th>Follow-up</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for d in decisions %}
+                {% set statusClass = d.followUpStatus == enum('App\\Enum\\FollowUpStatus').Overdue ? 'table-danger' : '' %}
+                <tr class="{{ statusClass }}">
+                    <td class="text-nowrap">{{ d.decidedAt|date('Y-m-d') }}</td>
+                    <td>{{ d.product.label }}</td>
+                    <td>{{ d.department.label }}</td>
+                    <td>{{ d.submittedBy.fullName }}</td>
+                    <td style="max-width: 40ch;"><div class="text-truncate" title="{{ d.changeDescription }}">{{ d.changeDescription|nl2br }}</div></td>
+                    <td>
+                        {% if d.followUpDate %}
+                            <span class="badge {{ d.followUpStatus.badgeClass }}">{{ d.followUpStatus.label }}</span>
+                            <div class="small text-muted">{{ d.followUpDate|date('Y-m-d') }}</div>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ path('app_decision_show', {id: d.id}) }}">Open</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-center p-4 text-muted">No decisions recorded.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

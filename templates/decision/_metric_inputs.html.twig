@@ -1,0 +1,27 @@
+{# group = MetricsType (ar / badrate / avgTicket / raw) #}
+<div class="row g-2">
+    <div class="col-12 col-sm-4">
+        <label class="form-label small fw-semibold text-muted">{{ form_label(group.ar, null, {label_attr: {class: 'visually-hidden'}}) }}AR</label>
+        <div class="input-group input-group-sm">
+            {{ form_widget(group.ar, {attr: {class: 'form-control', step: '0.01', placeholder: '—'}}) }}
+            <span class="input-group-text">%</span>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <label class="form-label small fw-semibold text-muted">{{ form_label(group.badrate, null, {label_attr: {class: 'visually-hidden'}}) }}Badrate</label>
+        <div class="input-group input-group-sm">
+            {{ form_widget(group.badrate, {attr: {class: 'form-control', step: '0.01', placeholder: '—'}}) }}
+            <span class="input-group-text">%</span>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <label class="form-label small fw-semibold text-muted">{{ form_label(group.avgTicket, null, {label_attr: {class: 'visually-hidden'}}) }}AVG ticket</label>
+        <div class="input-group input-group-sm">
+            {{ form_widget(group.avgTicket, {attr: {class: 'form-control', step: '0.01', placeholder: '—'}}) }}
+        </div>
+    </div>
+    <div class="col-12">
+        <label class="form-label small fw-semibold text-muted">{{ form_label(group.raw, null, {label_attr: {class: 'visually-hidden'}}) }}Free-form note</label>
+        {{ form_widget(group.raw, {attr: {class: 'form-control form-control-sm', rows: 2, placeholder: 'E.g. AR ~6% on new deals, PD 30/90 ~8.5%'}}) }}
+    </div>
+</div>

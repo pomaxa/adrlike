@@ -1,0 +1,179 @@
+{{ form_start(form, {attr: {class: 'decision-form', novalidate: 'novalidate'}}) }}
+
+<div class="df-grid">
+
+    <section class="df-section">
+        <header class="df-section__header">
+            <div class="df-section__icon bg-primary-subtle text-primary"><i class="bi bi-calendar2-event"></i></div>
+            <div>
+                <h2 class="df-section__title">Context</h2>
+                <p class="df-section__hint">When was the decision made, for what product, by whom.</p>
+            </div>
+        </header>
+        <div class="df-section__body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    {{ form_label(form.decidedAt) }}
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span>
+                        {{ form_widget(form.decidedAt, {attr: {class: 'form-control'}}) }}
+                    </div>
+                    {{ form_errors(form.decidedAt) }}
+                </div>
+                <div class="col-md-4">
+                    {{ form_label(form.product) }}
+                    {{ form_widget(form.product, {attr: {class: 'form-select'}}) }}
+                    {{ form_errors(form.product) }}
+                </div>
+                <div class="col-md-4">
+                    {{ form_label(form.department) }}
+                    {{ form_widget(form.department, {attr: {class: 'form-select'}}) }}
+                    {{ form_errors(form.department) }}
+                </div>
+                <div class="col-md-4">
+                    {{ form_label(form.clientsType) }}
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-people"></i></span>
+                        {{ form_widget(form.clientsType, {attr: {class: 'form-control', placeholder: 'All'}}) }}
+                    </div>
+                    <div class="form-text">E.g. <em>All</em>, <em>New</em>, <em>Existing</em>.</div>
+                </div>
+                <div class="col-md-4">
+                    {{ form_label(form.submittedBy) }}
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-person-circle"></i></span>
+                        {{ form_widget(form.submittedBy, {attr: {class: 'form-select'}}) }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    {{ form_label(form.approvedBy) }}
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-person-check"></i></span>
+                        {{ form_widget(form.approvedBy, {attr: {class: 'form-select'}}) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="df-section">
+        <header class="df-section__header">
+            <div class="df-section__icon bg-info-subtle text-info"><i class="bi bi-pencil-square"></i></div>
+            <div>
+                <h2 class="df-section__title">Change</h2>
+                <p class="df-section__hint">Describe precisely what changes. Future-you will thank you.</p>
+            </div>
+        </header>
+        <div class="df-section__body">
+            <div class="row g-3">
+                <div class="col-12">
+                    {{ form_label(form.changeDescription) }}
+                    {{ form_widget(form.changeDescription, {
+                        attr: {
+                            class: 'form-control df-autogrow',
+                            rows: 4,
+                            placeholder: 'E.g. Lower cut-off from 820 to 810 due to rising badrate in segment X.',
+                            'data-maxlen': 2000,
+                        },
+                    }) }}
+                    <div class="d-flex justify-content-between">
+                        <div class="form-text">Be specific — number before, number after, and why.</div>
+                        <div class="form-text df-counter"><span class="df-counter__current">0</span> chars</div>
+                    </div>
+                    {{ form_errors(form.changeDescription) }}
+                </div>
+                <div class="col-12">
+                    {{ form_label(form.comment) }}
+                    {{ form_widget(form.comment, {
+                        attr: {class: 'form-control df-autogrow', rows: 2, placeholder: 'Optional — hypotheses, risks, links to dashboards.'},
+                    }) }}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="df-section df-section--collapsible" data-df-collapsible>
+        <header class="df-section__header" role="button" data-df-toggle aria-expanded="false">
+            <div class="df-section__icon bg-warning-subtle text-warning"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="flex-grow-1">
+                <h2 class="df-section__title">Expected impact (optional)</h2>
+                <p class="df-section__hint">AR, badrate, AVG ticket — before and after. Skip if not applicable.</p>
+            </div>
+            <i class="bi bi-chevron-down df-section__chev"></i>
+        </header>
+        <div class="df-section__body" hidden>
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="df-metric df-metric--asis">
+                        <div class="df-metric__label">As-is</div>
+                        {% include 'decision/_metric_inputs.html.twig' with {group: form.asIsMetrics} %}
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="df-metric df-metric--tobe">
+                        <div class="df-metric__label">To-be (target)</div>
+                        {% include 'decision/_metric_inputs.html.twig' with {group: form.toBeMetrics} %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="df-section">
+        <header class="df-section__header">
+            <div class="df-section__icon bg-success-subtle text-success"><i class="bi bi-flag"></i></div>
+            <div>
+                <h2 class="df-section__title">Follow-up</h2>
+                <p class="df-section__hint">When should we revisit? Leave blank if the decision needs no review.</p>
+            </div>
+        </header>
+        <div class="df-section__body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    {{ form_label(form.followUpDate) }}
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-calendar-check"></i></span>
+                        {{ form_widget(form.followUpDate, {attr: {class: 'form-control'}}) }}
+                    </div>
+                    <div class="df-quickdates mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-df-quick-date="7">+7 d</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-df-quick-date="14">+2 w</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-df-quick-date="30">+1 mo</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-df-quick-date="90">+3 mo</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-df-quick-date="clear">Clear</button>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    {{ form_label(form.followUpOwner) }}
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-person-badge"></i></span>
+                        {{ form_widget(form.followUpOwner, {attr: {class: 'form-select'}}) }}
+                    </div>
+                    <div class="form-text">Defaults to submitter if left empty.</div>
+                </div>
+                <div class="col-12">
+                    {{ form_label(form.actualResult) }}
+                    {{ form_widget(form.actualResult, {
+                        attr: {class: 'form-control df-autogrow', rows: 2, placeholder: 'Fill in once you review the follow-up. What actually happened?'},
+                    }) }}
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="df-actions">
+    <div class="df-actions__inner">
+        <a class="btn btn-link text-decoration-none" href="{{ path('app_decision_index') }}">
+            <i class="bi bi-arrow-left"></i> Cancel
+        </a>
+        <div class="ms-auto d-flex gap-2">
+            <button type="reset" class="btn btn-outline-secondary">Reset</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Save decision
+            </button>
+        </div>
+    </div>
+</div>
+
+{{ form_end(form) }}

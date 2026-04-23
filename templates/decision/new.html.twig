@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New decision{% endblock %}
+
+{% block stylesheets %}
+    <link href="{{ asset('css/decision-form.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="decision-hero">
+    <div class="container-narrow mx-auto px-3">
+        <div class="crumbs">
+            <a href="{{ path('app_dashboard') }}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <a href="{{ path('app_decision_index') }}">Decisions</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <span>New</span>
+        </div>
+        <h1>Record a new decision</h1>
+        <p class="lead-hint">Write it down while it's fresh — who, what, why, and when to follow up.</p>
+    </div>
+</div>
+
+<div class="df-page px-3">
+    {% include 'decision/_form.html.twig' %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('js/decision-form.js') }}" defer></script>
+{% endblock %}

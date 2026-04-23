@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit decision{% endblock %}
+
+{% block stylesheets %}
+    <link href="{{ asset('css/decision-form.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="decision-hero">
+    <div class="container-narrow mx-auto px-3">
+        <div class="crumbs">
+            <a href="{{ path('app_dashboard') }}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <a href="{{ path('app_decision_index') }}">Decisions</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <a href="{{ path('app_decision_show', {id: decision.id}) }}">{{ decision.decidedAt|date('Y-m-d') }}</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <span>Edit</span>
+        </div>
+        <h1>Edit decision</h1>
+        <p class="lead-hint">Changes are recorded in the audit trail.</p>
+    </div>
+</div>
+
+<div class="df-page px-3">
+    {% include 'decision/_form.html.twig' %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="{{ asset('js/decision-form.js') }}" defer></script>
+{% endblock %}

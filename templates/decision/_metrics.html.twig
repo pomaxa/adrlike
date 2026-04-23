@@ -1,0 +1,10 @@
+{% if metrics is null or metrics is empty %}
+    <p class="text-muted small mb-0">—</p>
+{% else %}
+    <dl class="row mb-0 small">
+        {% if metrics.ar is defined and metrics.ar is not null %}<dt class="col-5">AR</dt><dd class="col-7">{{ metrics.ar }}%</dd>{% endif %}
+        {% if metrics.badrate is defined and metrics.badrate is not null %}<dt class="col-5">Badrate</dt><dd class="col-7">{{ metrics.badrate }}%</dd>{% endif %}
+        {% if metrics.avgTicket is defined and metrics.avgTicket is not null %}<dt class="col-5">AVG ticket</dt><dd class="col-7">{{ metrics.avgTicket }}</dd>{% endif %}
+        {% if metrics.raw is defined and metrics.raw %}<dt class="col-5">Note</dt><dd class="col-7">{{ metrics.raw|nl2br }}</dd>{% endif %}
+    </dl>
+{% endif %}

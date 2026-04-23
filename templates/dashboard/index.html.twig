@@ -1,0 +1,168 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard · Decisions{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .stat-card { border-left: 4px solid var(--bs-primary); }
+    .stat-card.overdue { border-left-color: var(--bs-danger); }
+    .stat-card.pending { border-left-color: var(--bs-info); }
+    .stat-card.done { border-left-color: var(--bs-success); }
+    .stat-value { font-size: 2.25rem; font-weight: 600; line-height: 1; }
+    .stat-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+    .chip {
+        display: inline-flex; align-items: baseline; gap: .4rem;
+        padding: .35rem .7rem; border-radius: 999px;
+        background: #f1f3f5; color: #212529; font-size: .85rem;
+        border: 1px solid #dee2e6;
+    }
+    .chip strong { font-weight: 600; }
+    .timeline li { border-left: 2px solid #dee2e6; padding: 0 0 .75rem 1rem; margin-left: .5rem; position: relative; }
+    .timeline li::before {
+        content: ''; position: absolute; left: -7px; top: .4rem;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: #fff; border: 2px solid var(--bs-primary);
+    }
+    .timeline li.overdue::before { border-color: var(--bs-danger); }
+    .timeline li.done::before { border-color: var(--bs-success); background: var(--bs-success); }
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h1 class="h3 mb-1">Decisions dashboard</h1>
+        <div class="text-muted small">As of {{ today|date('Y-m-d') }} · {{ app.user.fullName }}</div>
+    </div>
+    <div>
+        <a class="btn btn-primary" href="{{ path('app_decision_new') }}">+ New decision</a>
+        <a class="btn btn-outline-secondary" href="{{ path('app_decision_index') }}">Browse all</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100"><div class="card-body">
+            <div class="stat-label">Total</div>
+            <div class="stat-value">{{ total }}</div>
+            <div class="small text-muted">decisions on file</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card overdue h-100"><div class="card-body">
+            <div class="stat-label">Overdue</div>
+            <div class="stat-value text-danger">{{ overdue|length }}</div>
+            <a class="small" href="{{ path('app_decision_index', {status: 'overdue'}) }}">review →</a>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card pending h-100"><div class="card-body">
+            <div class="stat-label">Upcoming 14 d</div>
+            <div class="stat-value text-info">{{ upcoming|length }}</div>
+            <a class="small" href="{{ path('app_decision_index', {status: 'pending'}) }}">schedule →</a>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card done h-100"><div class="card-body">
+            <div class="stat-label">Completed</div>
+            <div class="stat-value text-success">{{ status_counts.done }}</div>
+            <div class="small text-muted">follow-ups closed</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">By product</h2>
+            {% for row in by_product %}
+                {% set share = total > 0 ? (row.count / total * 100)|round : 0 %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="chip"><strong>{{ row.count }}</strong> {{ row.label }}</span>
+                    <div class="progress ms-3 flex-grow-1" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ share }}%"></div>
+                    </div>
+                    <span class="text-muted small ms-2" style="min-width:3ch;">{{ share }}%</span>
+                </div>
+            {% endfor %}
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">By department</h2>
+            {% for row in by_department %}
+                {% set share = total > 0 ? (row.count / total * 100)|round : 0 %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="chip"><strong>{{ row.count }}</strong> {{ row.label }}</span>
+                    <div class="progress ms-3 flex-grow-1" style="height: 6px;">
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ share }}%"></div>
+                    </div>
+                    <span class="text-muted small ms-2" style="min-width:3ch;">{{ share }}%</span>
+                </div>
+            {% endfor %}
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h2 class="h6 mb-0">Follow-up action list</h2>
+                <span class="small text-muted">overdue first, then next 14 days</span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for d in overdue %}
+                    <a class="list-group-item list-group-item-action list-group-item-danger" href="{{ path('app_decision_show', {id: d.id}) }}">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ d.product.label }} · {{ d.department.label }}</strong>
+                            <span class="small">due {{ d.followUpDate|date('Y-m-d') }} · <strong>{{ ((today.timestamp - d.followUpDate.timestamp) / 86400)|round }} d overdue</strong></span>
+                        </div>
+                        <div class="text-truncate">{{ d.changeDescription }}</div>
+                        <div class="small text-muted">owner: {{ d.followUpOwner ? d.followUpOwner.fullName : d.submittedBy.fullName }}</div>
+                    </a>
+                {% endfor %}
+                {% for d in upcoming %}
+                    <a class="list-group-item list-group-item-action" href="{{ path('app_decision_show', {id: d.id}) }}">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ d.product.label }} · {{ d.department.label }}</strong>
+                            <span class="small text-muted">due {{ d.followUpDate|date('Y-m-d') }}</span>
+                        </div>
+                        <div class="text-truncate">{{ d.changeDescription }}</div>
+                        <div class="small text-muted">owner: {{ d.followUpOwner ? d.followUpOwner.fullName : d.submittedBy.fullName }}</div>
+                    </a>
+                {% else %}
+                    {% if overdue|length == 0 %}
+                        <div class="list-group-item text-center text-muted py-4">Nothing requires attention. 🎉</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h2 class="h6 mb-0">Recent decisions</h2>
+                <a class="small" href="{{ path('app_decision_index') }}">view all →</a>
+            </div>
+            <ul class="timeline list-unstyled p-3 m-0">
+                {% for d in recent %}
+                    {% set cls = d.followUpStatus.value %}
+                    <li class="{{ cls }}">
+                        <div class="small text-muted">{{ d.decidedAt|date('Y-m-d') }} · {{ d.submittedBy.fullName }}</div>
+                        <a href="{{ path('app_decision_show', {id: d.id}) }}" class="text-decoration-none">
+                            <strong>{{ d.product.label }}</strong>
+                            <span class="text-muted">·</span>
+                            <span>{{ d.changeDescription|slice(0, 110) }}{% if d.changeDescription|length > 110 %}…{% endif %}</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="text-muted">No decisions yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

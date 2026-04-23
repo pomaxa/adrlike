@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Decision · {{ decision.decidedAt|date('Y-m-d') }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Decision <small class="text-muted">{{ decision.decidedAt|date('Y-m-d') }}</small></h1>
+    <div>
+        <a class="btn btn-outline-secondary" href="{{ path('app_decision_index') }}">← Back</a>
+        <a class="btn btn-primary" href="{{ path('app_decision_edit', {id: decision.id}) }}">Edit</a>
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card p-3 bg-white mb-3">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Product</dt><dd class="col-sm-9">{{ decision.product.label }}</dd>
+                <dt class="col-sm-3">Department</dt><dd class="col-sm-9">{{ decision.department.label }}</dd>
+                <dt class="col-sm-3">Clients type</dt><dd class="col-sm-9">{{ decision.clientsType }}</dd>
+                <dt class="col-sm-3">Submitted by</dt><dd class="col-sm-9">{{ decision.submittedBy.fullName }}</dd>
+                <dt class="col-sm-3">Approved by</dt><dd class="col-sm-9">{{ decision.approvedBy ? decision.approvedBy.fullName : '—' }}</dd>
+                <dt class="col-sm-3">Change</dt><dd class="col-sm-9">{{ decision.changeDescription|nl2br }}</dd>
+                {% if decision.comment %}<dt class="col-sm-3">Comment</dt><dd class="col-sm-9">{{ decision.comment|nl2br }}</dd>{% endif %}
+            </dl>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card p-3 bg-white h-100">
+                    <h2 class="h6">As-is</h2>
+                    {% include 'decision/_metrics.html.twig' with {metrics: decision.asIsMetrics} %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card p-3 bg-white h-100">
+                    <h2 class="h6">To-be (target)</h2>
+                    {% include 'decision/_metrics.html.twig' with {metrics: decision.toBeMetrics} %}
+                </div>
+            </div>
+        </div>
+
+        {% if decision.history|length > 0 %}
+        <div class="card p-3 bg-white">
+            <h2 class="h6">History</h2>
+            <ul class="list-group list-group-flush">
+                {% for h in decision.history %}
+                    <li class="list-group-item">
+                        <div class="small text-muted">{{ h.changedAt|date('Y-m-d H:i') }} · {{ h.changedBy ? h.changedBy.fullName : 'system' }}</div>
+                        <div><strong>{{ h.fieldName }}</strong>: <span class="text-muted">{{ h.oldValue ?: '∅' }}</span> → {{ h.newValue ?: '∅' }}</div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card p-3 bg-white">
+            <h2 class="h6">Follow-up</h2>
+            <p>
+                <span class="badge {{ decision.followUpStatus.badgeClass }}">{{ decision.followUpStatus.label }}</span>
+                {% if decision.followUpDate %}
+                    <span class="ms-2">due {{ decision.followUpDate|date('Y-m-d') }}</span>
+                {% endif %}
+            </p>
+            {% if decision.followUpOwner %}<p class="mb-2"><strong>Owner:</strong> {{ decision.followUpOwner.fullName }}</p>{% endif %}
+            {% if decision.actualResult %}<p class="mb-2"><strong>Actual result:</strong><br>{{ decision.actualResult|nl2br }}</p>{% endif %}
+            {% if decision.followUpStatus.value != 'done' and decision.followUpDate %}
+                <form method="post" action="{{ path('app_decision_complete_followup', {id: decision.id}) }}" class="mt-2">
+                    <input type="hidden" name="_token" value="{{ csrf_token('complete_followup_' ~ decision.id) }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Actual result (optional)</label>
+                        <textarea name="actualResult" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button class="btn btn-success w-100" type="submit">Mark follow-up done</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

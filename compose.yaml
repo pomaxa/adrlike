@@ -1,0 +1,78 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - ./:/app:cached
+    environment:
+      APP_ENV: dev
+      APP_SECRET: "local-dev-secret-change-me"
+      DATABASE_URL: "postgresql://app:app@database:5432/app?serverVersion=17&charset=utf8"
+      MAILER_DSN: "smtp://mailer:1025"
+      MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
+    depends_on:
+      database:
+        condition: service_healthy
+      mailer:
+        condition: service_started
+
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "8180:80"
+    volumes:
+      - ./:/app:cached
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+      LANG: C.UTF-8
+      PGCLIENTENCODING: UTF8
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    ports:
+      - "5533:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mailer:
+    image: axllent/mailpit:latest
+    ports:
+      - "8125:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - ./:/app:cached
+    environment:
+      APP_ENV: dev
+      APP_SECRET: "local-dev-secret-change-me"
+      DATABASE_URL: "postgresql://app:app@database:5432/app?serverVersion=17&charset=utf8"
+      MAILER_DSN: "smtp://mailer:1025"
+      MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
+    command: ["php", "bin/console", "messenger:consume", "scheduler_default", "-vv", "--time-limit=3600"]
+    depends_on:
+      app:
+        condition: service_started
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  database_data:
