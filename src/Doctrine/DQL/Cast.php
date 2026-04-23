@@ -17,6 +17,8 @@ use Doctrine\ORM\Query\TokenType;
  */
 final class Cast extends FunctionNode
 {
+    private const ALLOWED_TYPES = ['TEXT', 'VARCHAR', 'INTEGER', 'BIGINT', 'NUMERIC', 'BOOLEAN', 'JSONB'];
+
     private Node $value;
     private string $type;
 
@@ -27,7 +29,15 @@ final class Cast extends FunctionNode
         $this->value = $parser->ArithmeticPrimary();
         $parser->match(TokenType::T_AS);
         $parser->match(TokenType::T_IDENTIFIER);
-        $this->type = $parser->getLexer()->token->value;
+
+        $token = $parser->getLexer()->token?->value
+            ?? throw new \Doctrine\ORM\Query\QueryException('CAST target type missing.');
+        $upper = strtoupper((string) $token);
+        if (!in_array($upper, self::ALLOWED_TYPES, true)) {
+            throw new \Doctrine\ORM\Query\QueryException(sprintf('CAST type "%s" is not allowed.', $token));
+        }
+        $this->type = $upper;
+
         $parser->match(TokenType::T_CLOSE_PARENTHESIS);
     }
 
