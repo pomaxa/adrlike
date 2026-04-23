@@ -319,4 +319,13 @@ final class UserControllerTest extends WebTestCase
         $this->client->request('GET', '/admin/users/' . $real->getId()->toRfc4122() . '/promote');
         self::assertResponseStatusCodeSame(404);
     }
+
+    public function testIndexShowsSsoStatusBanner(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->client->loginUser($admin);
+        $this->client->request('GET', '/admin/users');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.alert', 'SSO');
+    }
 }

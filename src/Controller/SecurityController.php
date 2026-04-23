@@ -13,11 +13,12 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 final class SecurityController extends AbstractController
 {
     #[Route('/login', name: 'app_login')]
-    public function login(AuthenticationUtils $utils): Response
+    public function login(AuthenticationUtils $utils, \App\Service\SsoStatusProvider $sso): Response
     {
         return $this->render('security/login.html.twig', [
             'last_username' => $utils->getLastUsername(),
             'error' => $utils->getLastAuthenticationError(),
+            'sso_enabled' => $sso->isEnabled(),
         ]);
     }
 

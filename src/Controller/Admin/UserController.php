@@ -10,6 +10,7 @@ use App\Form\PromotePlaceholderType;
 use App\Form\UserCreateType;
 use App\Form\UserEditType;
 use App\Repository\UserRepository;
+use App\Service\SsoStatusProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +29,7 @@ final class UserController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $hasher,
         private readonly LoggerInterface $logger,
+        private readonly SsoStatusProvider $sso,
     ) {
     }
 
@@ -52,6 +54,10 @@ final class UserController extends AbstractController
         return $this->render('admin/user/index.html.twig', [
             'users' => $users,
             'filters' => $filters,
+            'sso' => [
+                'status' => $this->sso->statusCode(),
+                'tenant_suffix' => $this->sso->tenantSuffix(),
+            ],
         ]);
     }
 
