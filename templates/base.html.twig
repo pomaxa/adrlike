@@ -20,6 +20,12 @@
                 <li class="nav-item"><a class="nav-link" href="{{ path('app_decision_index') }}">All decisions</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ path('app_decision_index', {status: 'overdue'}) }}">Overdue</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ path('app_decision_new') }}">+ New decision</a></li>
+                {% if is_granted('ROLE_APPROVER') %}
+                    <li class="nav-item"><a class="nav-link" href="{{ path('app_audit_index') }}"><i class="bi bi-clock-history"></i> Audit log</a></li>
+                {% endif %}
+                {% if is_granted('ROLE_ADMIN') %}
+                    <li class="nav-item"><a class="nav-link" href="{{ path('app_decision_import') }}"><i class="bi bi-cloud-upload"></i> Import CSV</a></li>
+                {% endif %}
             </ul>
             <span class="navbar-text me-3">{{ app.user.fullName }}</span>
             <a class="btn btn-sm btn-outline-light" href="{{ path('app_logout') }}">Log out</a>

@@ -2,6 +2,13 @@
 
 {% block title %}Decision · {{ decision.decidedAt|date('Y-m-d') }}{% endblock %}
 
+{% block stylesheets %}
+<style>
+    .audit-old { color: #b02a37; text-decoration: line-through; }
+    .audit-new { color: #146c43; }
+</style>
+{% endblock %}
+
 {% block body %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">Decision <small class="text-muted">{{ decision.decidedAt|date('Y-m-d') }}</small></h1>
@@ -41,12 +48,34 @@
 
         {% if decision.history|length > 0 %}
         <div class="card p-3 bg-white">
-            <h2 class="h6">History</h2>
+            <h2 class="h6"><i class="bi bi-clock-history"></i> Change history</h2>
             <ul class="list-group list-group-flush">
                 {% for h in decision.history %}
                     <li class="list-group-item">
-                        <div class="small text-muted">{{ h.changedAt|date('Y-m-d H:i') }} · {{ h.changedBy ? h.changedBy.fullName : 'system' }}</div>
-                        <div><strong>{{ h.fieldName }}</strong>: <span class="text-muted">{{ h.oldValue ?: '∅' }}</span> → {{ h.newValue ?: '∅' }}</div>
+                        <div class="small text-muted d-flex justify-content-between">
+                            <span>
+                                <i class="bi bi-person"></i>
+                                {{ h.changedBy ? h.changedBy.fullName : 'system / CLI' }}
+                            </span>
+                            <span>{{ h.changedAt|date('Y-m-d H:i') }}</span>
+                        </div>
+                        {% if h.isCreation %}
+                            <div class="mt-1">
+                                <span class="badge bg-success">Created</span>
+                                <span class="ms-1 text-muted small">initial change:</span>
+                                {{ h.newValue|audit_truncate(200, '…') ?: '—' }}
+                            </div>
+                        {% else %}
+                            <div class="mt-1"><strong>{{ decision_history_label(h.fieldName) }}</strong></div>
+                            <div class="small">
+                                <span class="text-muted">from</span>
+                                <span class="audit-old">{{ h.oldValue is null ? '∅' : h.oldValue|audit_truncate(200, '…') }}</span>
+                            </div>
+                            <div class="small">
+                                <span class="text-muted">to</span>
+                                <span class="audit-new">{{ h.newValue is null ? '∅' : h.newValue|audit_truncate(200, '…') }}</span>
+                            </div>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>

@@ -45,6 +45,22 @@ final class DecisionAuditSubscriber
         $actor = $this->security->getUser();
         $actor = $actor instanceof User ? $actor : null;
 
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if (!$entity instanceof Decision) {
+                continue;
+            }
+
+            $history = new DecisionHistory(
+                $entity,
+                DecisionHistory::FIELD_CREATED,
+                null,
+                self::stringify($entity->getChangeDescription()),
+                $actor,
+            );
+            $em->persist($history);
+            $uow->computeChangeSet($metadata, $history);
+        }
+
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if (!$entity instanceof Decision) {
                 continue;
