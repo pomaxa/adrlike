@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+{% block title %}Promote {{ user.fullName }} · Admin{% endblock %}
+{% block body %}
+<div class="container" style="max-width: 620px;">
+  <h1 class="mb-3"><i class="bi bi-person-up"></i> Promote placeholder</h1>
+  <div class="alert alert-info">
+    Converting placeholder <strong>{{ user.fullName }}</strong> (<code>{{ user.email }}</code>) into a real user.
+    The internal ID is preserved, so all existing decision references remain intact.
+  </div>
+  {{ form_start(form) }}
+    {{ form_row(form.email) }}
+    {{ form_row(form.password.first) }}
+    {{ form_row(form.password.second) }}
+    {{ form_row(form.roles) }}
+    <button class="btn btn-primary" type="submit">Promote user</button>
+    <a class="btn btn-link" href="{{ path('app_admin_user_show', {id: user.id}) }}">Cancel</a>
+  {{ form_end(form) }}
+</div>
+{% endblock %}

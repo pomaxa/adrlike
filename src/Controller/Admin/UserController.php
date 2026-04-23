@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\User;
 use App\Form\PasswordResetType;
+use App\Form\PromotePlaceholderType;
 use App\Form\UserCreateType;
 use App\Form\UserEditType;
 use App\Repository\UserRepository;
@@ -155,6 +156,36 @@ final class UserController extends AbstractController
     #[Route('/{id}/promote', name: 'app_admin_user_promote', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]
     public function promotePlaceholder(Request $request, string $id): Response
     {
-        return new Response('stub', 501);
+        $user = $this->users->find($id) ?? throw $this->createNotFoundException();
+        if (!$user->isPlaceholder()) {
+            throw $this->createNotFoundException('User is not a placeholder.');
+        }
+
+        $form = $this->createForm(PromotePlaceholderType::class);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $email = (string) $form->get('email')->getData();
+
+            $existing = $this->users->findOneByEmail($email);
+            if ($existing !== null && $existing !== $user) {
+                $form->get('email')->addError(new \Symfony\Component\Form\FormError('A user with this email already exists.'));
+            } else {
+                $user->setEmail($email);
+                $user->setPassword($this->hasher->hashPassword($user, (string) $form->get('password')->getData()));
+                $user->setRoles($form->get('roles')->getData());
+                $user->setPlaceholder(false);
+                $this->em->flush();
+
+                $this->addFlash('success', sprintf('Promoted %s.', $user->getFullName()));
+                return $this->redirectToRoute('app_admin_user_show', ['id' => $user->getId()]);
+            }
+        }
+
+        $status = $form->isSubmitted() ? 422 : 200;
+        return $this->render('admin/user/promote.html.twig', [
+            'user' => $user,
+            'form' => $form->createView(),
+        ], new Response(null, $status));
     }
 }

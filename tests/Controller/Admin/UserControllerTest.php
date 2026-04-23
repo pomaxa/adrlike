@@ -267,4 +267,56 @@ final class UserControllerTest extends WebTestCase
         $this->client->request('GET', '/admin/users/' . $ph->getId()->toRfc4122() . '/password');
         self::assertResponseRedirects('/admin/users/' . $ph->getId()->toRfc4122() . '/promote');
     }
+
+    private function setPromoteRoleCheckboxes(\Symfony\Component\DomCrawler\Form $form, string ...$wantedRoles): void
+    {
+        $choiceOrder = ['ROLE_ADMIN', 'ROLE_APPROVER', 'ROLE_SUBMITTER'];
+        foreach ($choiceOrder as $i => $role) {
+            $key = "promote_placeholder[roles][$i]";
+            if (!$form->has($key)) {
+                continue;
+            }
+            if (in_array($role, $wantedRoles, true)) {
+                $form[$key]->tick();
+            } else {
+                $form[$key]->untick();
+            }
+        }
+    }
+
+    public function testPromotePlaceholderPreservesUuidAndAllowsLogin(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $ph = $this->makeUser('ghost-b@imported.local', 'Ghost B', ['ROLE_SUBMITTER'], placeholder: true, password: null);
+        $originalId = $ph->getId()->toRfc4122();
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/' . $originalId . '/promote');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Promote user')->form([
+            'promote_placeholder[email]' => 'ghost-b@real.example.com',
+            'promote_placeholder[password][first]' => 'realpass1',
+            'promote_placeholder[password][second]' => 'realpass1',
+        ]);
+        $this->setPromoteRoleCheckboxes($form, 'ROLE_SUBMITTER');
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $reloaded = $this->em->getRepository(User::class)->find($ph->getId());
+        self::assertSame($originalId, $reloaded->getId()->toRfc4122());
+        self::assertSame('ghost-b@real.example.com', $reloaded->getEmail());
+        self::assertFalse($reloaded->isPlaceholder());
+        self::assertTrue($this->hasher->isPasswordValid($reloaded, 'realpass1'));
+    }
+
+    public function testPromoteNonPlaceholderReturns404(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $real = $this->makeUser('real@example.com', 'Real', ['ROLE_SUBMITTER']);
+        $this->client->loginUser($admin);
+
+        $this->client->request('GET', '/admin/users/' . $real->getId()->toRfc4122() . '/promote');
+        self::assertResponseStatusCodeSame(404);
+    }
 }
