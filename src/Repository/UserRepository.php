@@ -31,6 +31,32 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         return $this->findOneBy(['fullName' => $fullName]);
     }
 
+    /**
+     * @param array{search?: string|null, role?: string|null, placeholder?: bool|null} $filters
+     */
+    public function queryForAdminList(array $filters): \Doctrine\ORM\QueryBuilder
+    {
+        $qb = $this->createQueryBuilder('u')->orderBy('u.fullName', 'ASC');
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $qb->andWhere('LOWER(u.fullName) LIKE :s OR LOWER(u.email) LIKE :s')
+               ->setParameter('s', '%' . strtolower($search) . '%');
+        }
+
+        $role = $filters['role'] ?? null;
+        if (is_string($role) && $role !== '') {
+            $qb->andWhere('CAST(u.roles AS TEXT) LIKE :role')
+               ->setParameter('role', '%"' . $role . '"%');
+        }
+
+        if (array_key_exists('placeholder', $filters) && is_bool($filters['placeholder'])) {
+            $qb->andWhere('u.placeholder = :ph')->setParameter('ph', $filters['placeholder']);
+        }
+
+        return $qb;
+    }
+
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
         if (!$user instanceof User) {
