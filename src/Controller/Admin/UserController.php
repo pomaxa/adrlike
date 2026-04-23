@@ -77,7 +77,11 @@ final class UserController extends AbstractController
     #[Route('/{id}', name: 'app_admin_user_show', methods: ['GET'], requirements: ['id' => '[0-9a-f-]{36}'])]
     public function show(string $id): Response
     {
-        return new Response('stub', 501);
+        $user = $this->users->find($id) ?? throw $this->createNotFoundException();
+        return $this->render('admin/user/show.html.twig', [
+            'user' => $user,
+            'decisionCount' => $this->users->countDecisionReferences($user),
+        ]);
     }
 
     #[Route('/{id}/edit', name: 'app_admin_user_edit', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]

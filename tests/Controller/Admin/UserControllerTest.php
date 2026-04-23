@@ -155,4 +155,16 @@ final class UserControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'already exists');
     }
+
+    public function testShowUserPage(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $target = $this->makeUser('target@example.com', 'Target User', ['ROLE_SUBMITTER']);
+        $this->client->loginUser($admin);
+
+        $this->client->request('GET', '/admin/users/' . $target->getId()->toRfc4122());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Target User');
+        self::assertSelectorTextContains('body', 'target@example.com');
+    }
 }

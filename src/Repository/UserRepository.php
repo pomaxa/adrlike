@@ -57,6 +57,15 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         return $qb;
     }
 
+    public function countDecisionReferences(User $user): int
+    {
+        $dql = 'SELECT COUNT(d.id) FROM App\Entity\Decision d
+                WHERE d.submittedBy = :u OR d.approvedBy = :u OR d.followUpOwner = :u';
+        return (int) $this->getEntityManager()->createQuery($dql)
+            ->setParameter('u', $user)
+            ->getSingleScalarResult();
+    }
+
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
         if (!$user instanceof User) {
