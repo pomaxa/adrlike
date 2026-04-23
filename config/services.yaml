@@ -21,3 +21,10 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        # Expose for KernelTestCase::getContainer() access (otherwise Symfony inlines it)
+        App\Security\AzureUserResolver:
+            autowire: true
+            public: true
