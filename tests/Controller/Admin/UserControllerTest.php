@@ -65,4 +65,25 @@ final class UserControllerTest extends WebTestCase
         $this->client->request('GET', '/admin/users');
         self::assertResponseIsSuccessful();
     }
+
+    public function testIndexListsUsersAndAppliesSearchFilter(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->makeUser('zoe@example.com', 'Zoe Zebra', ['ROLE_SUBMITTER']);
+        $this->makeUser('p@imported.local', 'Placeholder Pat', ['ROLE_SUBMITTER'], placeholder: true, password: null);
+
+        $this->client->loginUser($admin);
+        $this->client->request('GET', '/admin/users');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Zoe Zebra');
+        self::assertSelectorTextContains('body', 'Placeholder Pat');
+
+        $this->client->request('GET', '/admin/users?q=zoe');
+        self::assertSelectorTextContains('body', 'Zoe Zebra');
+        self::assertSelectorTextNotContains('body', 'Placeholder Pat');
+
+        $this->client->request('GET', '/admin/users?placeholder=yes');
+        self::assertSelectorTextContains('body', 'Placeholder Pat');
+        self::assertSelectorTextNotContains('body', 'Zoe Zebra');
+    }
 }

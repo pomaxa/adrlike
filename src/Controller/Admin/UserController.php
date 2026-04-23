@@ -42,4 +42,34 @@ final class UserController extends AbstractController
             'filters' => $filters,
         ]);
     }
+
+    #[Route('/new', name: 'app_admin_user_new', methods: ['GET', 'POST'])]
+    public function new(Request $request): Response
+    {
+        return new Response('stub', 501);
+    }
+
+    #[Route('/{id}', name: 'app_admin_user_show', methods: ['GET'], requirements: ['id' => '[0-9a-f-]{36}'])]
+    public function show(string $id): Response
+    {
+        return new Response('stub', 501);
+    }
+
+    #[Route('/{id}/edit', name: 'app_admin_user_edit', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]
+    public function edit(Request $request, string $id): Response
+    {
+        return new Response('stub', 501);
+    }
+
+    #[Route('/{id}/password', name: 'app_admin_user_password', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]
+    public function resetPassword(Request $request, string $id): Response
+    {
+        return new Response('stub', 501);
+    }
+
+    #[Route('/{id}/promote', name: 'app_admin_user_promote', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]
+    public function promotePlaceholder(Request $request, string $id): Response
+    {
+        return new Response('stub', 501);
+    }
 }

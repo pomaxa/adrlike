@@ -1,8 +1,73 @@
 {% extends 'base.html.twig' %}
 {% block title %}Users · Admin{% endblock %}
 {% block body %}
-<div class="container">
-  <h1 class="mb-3"><i class="bi bi-people"></i> Users</h1>
-  <p class="text-muted">User management (placeholder — content comes in later tasks).</p>
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><i class="bi bi-people"></i> Users</h1>
+    <a class="btn btn-primary" href="{{ path('app_admin_user_new') }}"><i class="bi bi-person-plus"></i> New user</a>
+  </div>
+
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-md-4">
+      <input type="search" class="form-control" name="q" value="{{ filters.search ?? '' }}" placeholder="Search name or email">
+    </div>
+    <div class="col-md-3">
+      <select class="form-select" name="role">
+        <option value="">Any role</option>
+        {% for r in ['ROLE_ADMIN', 'ROLE_APPROVER', 'ROLE_SUBMITTER'] %}
+          <option value="{{ r }}" {{ filters.role == r ? 'selected' : '' }}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select class="form-select" name="placeholder">
+        <option value="">Real + placeholder</option>
+        <option value="no" {{ filters.placeholder is same as(false) ? 'selected' : '' }}>Real users only</option>
+        <option value="yes" {{ filters.placeholder is same as(true) ? 'selected' : '' }}>Placeholders only</option>
+      </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-outline-secondary w-100">Filter</button></div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr>
+        <th>Name</th><th>Email</th><th>Roles</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.fullName }}</td>
+          <td><code>{{ user.email }}</code></td>
+          <td>
+            {% for r in user.roles|filter(r => r != 'ROLE_USER') %}
+              <span class="badge text-bg-{{ r == 'ROLE_ADMIN' ? 'danger' : (r == 'ROLE_APPROVER' ? 'warning' : 'secondary') }}">{{ r }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% if user.placeholder %}
+              <span class="badge text-bg-info">placeholder</span>
+            {% else %}
+              <span class="badge text-bg-success">active</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-secondary" href="{{ path('app_admin_user_show', {id: user.id}) }}">View</a>
+              <a class="btn btn-outline-secondary" href="{{ path('app_admin_user_edit', {id: user.id}) }}">Edit</a>
+              {% if user.placeholder %}
+                <a class="btn btn-outline-primary" href="{{ path('app_admin_user_promote', {id: user.id}) }}">Promote</a>
+              {% else %}
+                <a class="btn btn-outline-warning" href="{{ path('app_admin_user_password', {id: user.id}) }}">Reset pw</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-center text-muted">No users match.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
