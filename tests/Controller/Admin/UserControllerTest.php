@@ -87,6 +87,29 @@ final class UserControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('body', 'Zoe Zebra');
     }
 
+    /**
+     * With expanded+multiple ChoiceType, each checkbox is a separate input:
+     *   user_create[roles][0] → ROLE_ADMIN
+     *   user_create[roles][1] → ROLE_APPROVER
+     *   user_create[roles][2] → ROLE_SUBMITTER
+     * Ticking one requires addressing the per-index checkbox explicitly.
+     */
+    private function setRoleCheckboxes(\Symfony\Component\DomCrawler\Form $form, string ...$wantedRoles): void
+    {
+        $choiceOrder = ['ROLE_ADMIN', 'ROLE_APPROVER', 'ROLE_SUBMITTER'];
+        foreach ($choiceOrder as $i => $role) {
+            $key = "user_create[roles][$i]";
+            if (!$form->has($key)) {
+                continue;
+            }
+            if (in_array($role, $wantedRoles, true)) {
+                $form[$key]->tick();
+            } else {
+                $form[$key]->untick();
+            }
+        }
+    }
+
     public function testCreateUserFlowPersistsAndAllowsLogin(): void
     {
         $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
@@ -100,8 +123,8 @@ final class UserControllerTest extends WebTestCase
             'user_create[fullName]' => 'New User',
             'user_create[password][first]' => 'secretpass',
             'user_create[password][second]' => 'secretpass',
-            'user_create[roles]' => ['ROLE_APPROVER'],
         ]);
+        $this->setRoleCheckboxes($form, 'ROLE_APPROVER');
         $this->client->submit($form);
         self::assertResponseRedirects('/admin/users');
 
@@ -109,6 +132,7 @@ final class UserControllerTest extends WebTestCase
         self::assertNotNull($created);
         self::assertSame('New User', $created->getFullName());
         self::assertContains('ROLE_APPROVER', $created->getRoles());
+        self::assertNotContains('ROLE_SUBMITTER', $created->getRoles());
         self::assertFalse($created->isPlaceholder());
         self::assertTrue($this->hasher->isPasswordValid($created, 'secretpass'));
     }
@@ -125,8 +149,8 @@ final class UserControllerTest extends WebTestCase
             'user_create[fullName]' => 'Second Dup',
             'user_create[password][first]' => 'secretpass',
             'user_create[password][second]' => 'secretpass',
-            'user_create[roles]' => ['ROLE_SUBMITTER'],
         ]);
+        $this->setRoleCheckboxes($form, 'ROLE_SUBMITTER');
         $this->client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('body', 'already exists');

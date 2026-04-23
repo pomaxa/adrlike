@@ -35,7 +35,7 @@ final class UserCreateType extends AbstractType
                 'label' => 'Roles',
                 'mapped' => false,
                 'multiple' => true,
-                'expanded' => false,
+                'expanded' => true,
                 'choices' => [
                     'Admin' => 'ROLE_ADMIN',
                     'Approver' => 'ROLE_APPROVER',
