@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\User;
+use App\Form\PasswordResetType;
 use App\Form\UserCreateType;
 use App\Form\UserEditType;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,7 @@ final class UserController extends AbstractController
         private readonly UserRepository $users,
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $hasher,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -117,7 +120,36 @@ final class UserController extends AbstractController
     #[Route('/{id}/password', name: 'app_admin_user_password', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]
     public function resetPassword(Request $request, string $id): Response
     {
-        return new Response('stub', 501);
+        $user = $this->users->find($id) ?? throw $this->createNotFoundException();
+
+        if ($user->isPlaceholder()) {
+            $this->addFlash('warning', 'Placeholder users must be promoted before a password can be set.');
+            return $this->redirectToRoute('app_admin_user_promote', ['id' => $user->getId()]);
+        }
+
+        $form = $this->createForm(PasswordResetType::class);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $plain = (string) $form->get('password')->getData();
+            $user->setPassword($this->hasher->hashPassword($user, $plain));
+            $this->em->flush();
+
+            $actor = $this->getUser();
+            $this->logger->info('Admin password reset', [
+                'target_email' => $user->getEmail(),
+                'actor_email' => $actor?->getUserIdentifier(),
+            ]);
+
+            $this->addFlash('success', sprintf('Password reset for %s.', $user->getEmail()));
+            return $this->redirectToRoute('app_admin_user_show', ['id' => $user->getId()]);
+        }
+
+        $status = $form->isSubmitted() ? 422 : 200;
+        return $this->render('admin/user/password.html.twig', [
+            'user' => $user,
+            'form' => $form->createView(),
+        ], new Response(null, $status));
     }
 
     #[Route('/{id}/promote', name: 'app_admin_user_promote', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]

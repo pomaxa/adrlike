@@ -236,4 +236,35 @@ final class UserControllerTest extends WebTestCase
         $reloaded = $this->em->getRepository(User::class)->find($admin->getId());
         self::assertContains('ROLE_ADMIN', $reloaded->getRoles());
     }
+
+    public function testResetPasswordChangesHash(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $target = $this->makeUser('target@example.com', 'Target', ['ROLE_SUBMITTER'], password: 'old-pw-123');
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/' . $target->getId()->toRfc4122() . '/password');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Set new password')->form([
+            'password_reset[password][first]' => 'brandnewpw',
+            'password_reset[password][second]' => 'brandnewpw',
+        ]);
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $reloaded = $this->em->getRepository(User::class)->find($target->getId());
+        self::assertFalse($this->hasher->isPasswordValid($reloaded, 'old-pw-123'));
+        self::assertTrue($this->hasher->isPasswordValid($reloaded, 'brandnewpw'));
+    }
+
+    public function testResetPasswordOnPlaceholderRedirectsToPromote(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $ph = $this->makeUser('ghost-a@imported.local', 'Ghost A', ['ROLE_SUBMITTER'], placeholder: true, password: null);
+        $this->client->loginUser($admin);
+
+        $this->client->request('GET', '/admin/users/' . $ph->getId()->toRfc4122() . '/password');
+        self::assertResponseRedirects('/admin/users/' . $ph->getId()->toRfc4122() . '/promote');
+    }
 }
