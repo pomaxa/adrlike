@@ -1,0 +1,241 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import CSV · Decisions{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .import-hero {
+        background: linear-gradient(135deg, #f4f7fb 0%, #e7ecf5 100%);
+        border-bottom: 1px solid #dfe6f1;
+        padding: 1.25rem 0 1.5rem;
+        margin: -1rem -12px 1.5rem;
+    }
+    .import-hero h1 { margin: 0; font-weight: 600; }
+    .import-hero .crumbs { font-size: .85rem; color: #6c757d; margin-bottom: .25rem; }
+    .import-hero .crumbs a { color: inherit; text-decoration: none; }
+    .import-page { max-width: 900px; margin: 0 auto; padding-bottom: 2rem; }
+
+    .drop-zone {
+        border: 2px dashed #c3cfe2;
+        border-radius: 14px;
+        background: #fafbfd;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        transition: border-color .2s, background-color .2s;
+        cursor: pointer;
+        position: relative;
+    }
+    .drop-zone:hover, .drop-zone.is-dragover {
+        border-color: #3d7fff;
+        background: #eef4ff;
+    }
+    .drop-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .drop-zone__icon {
+        font-size: 2.5rem;
+        color: #6c7a93;
+        margin-bottom: .5rem;
+    }
+    .drop-zone__title { font-weight: 600; margin-bottom: .25rem; }
+    .drop-zone__hint { font-size: .85rem; color: #6c7a93; }
+    .file-chip {
+        display: inline-flex; align-items: center; gap: .5rem;
+        padding: .4rem .75rem;
+        background: #e7ecf5; border-radius: 999px;
+        font-size: .9rem;
+        max-width: 100%;
+        word-break: break-all;
+    }
+
+    .stat {
+        background: #fff; border: 1px solid #e7ecf2; border-radius: 12px;
+        padding: 1rem; text-align: center;
+    }
+    .stat .num { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat .lbl { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: #6c7a93; margin-top: .25rem; }
+    .stat.created .num { color: #0a7f3f; }
+    .stat.skipped .num { color: #6c7a93; }
+    .stat.users .num { color: #1a6ae0; }
+
+    .format-sample {
+        background: #1a1f2b; color: #e6e9f0;
+        border-radius: 10px; padding: .85rem;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: .78rem; overflow-x: auto;
+    }
+    .format-sample .hl { color: #ffd66b; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="import-hero">
+    <div class="import-page px-3">
+        <div class="crumbs">
+            <a href="{{ path('app_dashboard') }}"><i class="bi bi-house"></i> Home</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <a href="{{ path('app_decision_index') }}">Decisions</a>
+            <i class="bi bi-chevron-right mx-1 small"></i>
+            <span>Import</span>
+        </div>
+        <h1>Import decisions from CSV</h1>
+        <p class="text-muted mt-2 mb-0">Upload a Product_changes-style CSV. The importer auto-detects encoding and skips duplicates by content hash.</p>
+    </div>
+</div>
+
+<div class="import-page px-3">
+
+    {% if result and result.isOk %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h2 class="h5 mb-1">
+                            <i class="bi {{ meta.dryRun ? 'bi-info-circle text-info' : 'bi-check-circle text-success' }}"></i>
+                            {{ meta.dryRun ? 'Dry-run result' : 'Import successful' }}
+                        </h2>
+                        <div class="text-muted small">
+                            <span class="file-chip"><i class="bi bi-file-earmark-spreadsheet"></i> {{ meta.name }} · {{ (meta.size / 1024)|number_format(1) }} KB</span>
+                            <span class="ms-2">· encoding: <strong>{{ result.sourceEncoding }}</strong></span>
+                        </div>
+                    </div>
+                    <a class="btn btn-outline-primary" href="{{ path('app_decision_index') }}">View decisions →</a>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4"><div class="stat created"><div class="num">{{ result.created }}</div><div class="lbl">{{ meta.dryRun ? 'would create' : 'created' }}</div></div></div>
+                    <div class="col-md-4"><div class="stat skipped"><div class="num">{{ result.skipped }}</div><div class="lbl">skipped duplicates</div></div></div>
+                    <div class="col-md-4"><div class="stat users"><div class="num">{{ result.newUsers }}</div><div class="lbl">new users</div></div></div>
+                </div>
+
+                {% if result.warnings is not empty %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle"></i> {{ result.warnings|length }} warnings</div>
+                        <ul class="mb-0 small">
+                            {% for w in result.warnings %}
+                                <li>{{ w }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% elseif result and not result.isOk %}
+        <div class="alert alert-danger">
+            <strong>Import failed.</strong> {{ result.fatalError }}
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h5 mb-3"><i class="bi bi-cloud-upload"></i> Upload a CSV file</h2>
+
+            {{ form_start(form, {attr: {class: 'needs-validation', novalidate: 'novalidate'}}) }}
+
+            <div class="drop-zone mb-3" data-drop-zone>
+                <div class="drop-zone__default">
+                    <div class="drop-zone__icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+                    <div class="drop-zone__title">Drop your CSV here, or click to choose</div>
+                    <div class="drop-zone__hint">Max 10 MB · encodings auto-detected</div>
+                </div>
+                <div class="drop-zone__picked" hidden>
+                    <div class="file-chip"><i class="bi bi-check-circle text-success"></i> <span data-file-name>—</span> · <span data-file-size>—</span></div>
+                    <div class="small text-muted mt-1">Click again to change.</div>
+                </div>
+                {{ form_widget(form.file) }}
+            </div>
+            {{ form_errors(form.file) }}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {{ form_label(form.encoding) }}
+                    {{ form_widget(form.encoding, {attr: {class: 'form-select'}}) }}
+                    <div class="form-text">{{ form_help(form.encoding) }}</div>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form_widget(form.dryRun, {attr: {class: 'form-check-input'}}) }}
+                        {{ form_label(form.dryRun, null, {label_attr: {class: 'form-check-label'}}) }}
+                        <div class="form-text">{{ form_help(form.dryRun) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a class="btn btn-link text-decoration-none" href="{{ path('app_decision_index') }}">
+                    <i class="bi bi-arrow-left"></i> Back to decisions
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-cloud-arrow-up"></i> Upload and import
+                </button>
+            </div>
+
+            {{ form_end(form) }}
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-2"><i class="bi bi-info-circle"></i> Expected format</h2>
+            <p class="small text-muted mb-2">Row 1 is an optional "section header" row; row 2 is the column header; data starts on row 3. Dates are <code>dd.mm.yyyy</code>.</p>
+            <div class="format-sample">section-header,,,,,,,,"BEFORE metrics",,"FOLLOW-UP metrics",<br>
+<span class="hl">Date,Product,Department,Submitted by,Approved by,Clients type,Change,Comment,As is,To-be,Follow-up date,Actual result</span><br>
+06.06.2025,Leasing,Risk,Dmitry Petrov,,All,Cut-off 810 → 820,,,,,<br>
+14.07.2025,Installment,Risk,Ekaterina L.,,All,Raise cut-off to 430,…,…,…,01.09.2025,</div>
+            <ul class="small text-muted mt-2 mb-0">
+                <li>Duplicates are detected by <code>(Date, Submitted by, Change)</code> — re-uploads are safe.</li>
+                <li>Unknown submitters become placeholder users (email <code>*@imported.local</code>) — merge later via <em>Admin → Users</em>.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+(function(){
+    var zone = document.querySelector('[data-drop-zone]');
+    if (!zone) return;
+    var input = zone.querySelector('input[type="file"]');
+    var def = zone.querySelector('.drop-zone__default');
+    var picked = zone.querySelector('.drop-zone__picked');
+    var nameEl = zone.querySelector('[data-file-name]');
+    var sizeEl = zone.querySelector('[data-file-size]');
+
+    function fmt(bytes) {
+        if (!bytes) return '0 B';
+        var u = ['B','KB','MB','GB'], i = 0;
+        while (bytes >= 1024 && i < u.length - 1) { bytes /= 1024; ++i; }
+        return bytes.toFixed(i === 0 ? 0 : 1) + ' ' + u[i];
+    }
+    function show(file) {
+        nameEl.textContent = file.name;
+        sizeEl.textContent = fmt(file.size);
+        def.hidden = true;
+        picked.hidden = false;
+    }
+    function reset() {
+        def.hidden = false;
+        picked.hidden = true;
+    }
+    input.addEventListener('change', function(){
+        if (input.files && input.files.length) show(input.files[0]); else reset();
+    });
+    ;['dragover','dragenter'].forEach(function(ev){
+        zone.addEventListener(ev, function(e){ e.preventDefault(); zone.classList.add('is-dragover'); });
+    });
+    ;['dragleave','drop'].forEach(function(ev){
+        zone.addEventListener(ev, function(e){ e.preventDefault(); zone.classList.remove('is-dragover'); });
+    });
+    zone.addEventListener('drop', function(e){
+        if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            input.files = e.dataTransfer.files;
+            show(input.files[0]);
+        }
+    });
+})();
+</script>
+{% endblock %}
