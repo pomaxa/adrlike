@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Entity\User;
+use App\Form\UserCreateType;
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -15,8 +19,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/admin/users')]
 final class UserController extends AbstractController
 {
-    public function __construct(private readonly UserRepository $users)
-    {
+    public function __construct(
+        private readonly UserRepository $users,
+        private readonly EntityManagerInterface $em,
+        private readonly UserPasswordHasherInterface $hasher,
+    ) {
     }
 
     #[Route('', name: 'app_admin_user_index', methods: ['GET'])]
@@ -46,7 +53,25 @@ final class UserController extends AbstractController
     #[Route('/new', name: 'app_admin_user_new', methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
-        return new Response('stub', 501);
+        $user = new User('', '');
+        $form = $this->createForm(UserCreateType::class, $user);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $plain = (string) $form->get('password')->getData();
+            $user->setPassword($this->hasher->hashPassword($user, $plain));
+            $user->setRoles($form->get('roles')->getData());
+            $user->setPlaceholder(false);
+
+            $this->em->persist($user);
+            $this->em->flush();
+
+            $this->addFlash('success', sprintf('Created user %s.', $user->getEmail()));
+            return $this->redirectToRoute('app_admin_user_index');
+        }
+
+        $status = $form->isSubmitted() ? 422 : 200;
+        return $this->render('admin/user/new.html.twig', ['form' => $form->createView()], new Response(null, $status));
     }
 
     #[Route('/{id}', name: 'app_admin_user_show', methods: ['GET'], requirements: ['id' => '[0-9a-f-]{36}'])]

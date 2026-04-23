@@ -86,4 +86,49 @@ final class UserControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Placeholder Pat');
         self::assertSelectorTextNotContains('body', 'Zoe Zebra');
     }
+
+    public function testCreateUserFlowPersistsAndAllowsLogin(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/new');
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton('Create user')->form([
+            'user_create[email]' => 'new@example.com',
+            'user_create[fullName]' => 'New User',
+            'user_create[password][first]' => 'secretpass',
+            'user_create[password][second]' => 'secretpass',
+            'user_create[roles]' => ['ROLE_APPROVER'],
+        ]);
+        $this->client->submit($form);
+        self::assertResponseRedirects('/admin/users');
+
+        $created = $this->em->getRepository(User::class)->findOneBy(['email' => 'new@example.com']);
+        self::assertNotNull($created);
+        self::assertSame('New User', $created->getFullName());
+        self::assertContains('ROLE_APPROVER', $created->getRoles());
+        self::assertFalse($created->isPlaceholder());
+        self::assertTrue($this->hasher->isPasswordValid($created, 'secretpass'));
+    }
+
+    public function testCreateUserRejectsDuplicateEmail(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->makeUser('dup@example.com', 'Dup', ['ROLE_SUBMITTER']);
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/new');
+        $form = $crawler->selectButton('Create user')->form([
+            'user_create[email]' => 'dup@example.com',
+            'user_create[fullName]' => 'Second Dup',
+            'user_create[password][first]' => 'secretpass',
+            'user_create[password][second]' => 'secretpass',
+            'user_create[roles]' => ['ROLE_SUBMITTER'],
+        ]);
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'already exists');
+    }
 }
