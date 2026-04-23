@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\User;
 use App\Form\UserCreateType;
+use App\Form\UserEditType;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -87,7 +88,30 @@ final class UserController extends AbstractController
     #[Route('/{id}/edit', name: 'app_admin_user_edit', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]
     public function edit(Request $request, string $id): Response
     {
-        return new Response('stub', 501);
+        $user = $this->users->find($id) ?? throw $this->createNotFoundException();
+        $isSelf = $user === $this->getUser();
+
+        $form = $this->createForm(UserEditType::class, $user, [
+            'is_self' => $isSelf,
+            'current_roles' => $user->getRoles(),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            if (!$isSelf) {
+                $user->setRoles($form->get('roles')->getData());
+            }
+            $this->em->flush();
+            $this->addFlash('success', 'User updated.');
+            return $this->redirectToRoute('app_admin_user_show', ['id' => $user->getId()]);
+        }
+
+        $status = $form->isSubmitted() ? 422 : 200;
+        return $this->render('admin/user/edit.html.twig', [
+            'user' => $user,
+            'form' => $form->createView(),
+            'isSelf' => $isSelf,
+        ], new Response(null, $status));
     }
 
     #[Route('/{id}/password', name: 'app_admin_user_password', methods: ['GET', 'POST'], requirements: ['id' => '[0-9a-f-]{36}'])]

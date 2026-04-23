@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+{% block title %}Edit {{ user.fullName }} · Admin{% endblock %}
+{% block body %}
+<div class="container" style="max-width: 640px;">
+  <h1 class="mb-3"><i class="bi bi-pencil"></i> Edit user</h1>
+  {% if isSelf %}
+    <div class="alert alert-info">You are editing your own account. Role changes are not allowed from this form.</div>
+  {% endif %}
+  {{ form_start(form) }}
+    {{ form_row(form.email) }}
+    {{ form_row(form.fullName) }}
+    {% if form.roles is defined %}{{ form_row(form.roles) }}{% endif %}
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-link" href="{{ path('app_admin_user_show', {id: user.id}) }}">Cancel</a>
+  {{ form_end(form) }}
+</div>
+{% endblock %}

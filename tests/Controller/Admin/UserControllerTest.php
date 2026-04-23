@@ -167,4 +167,73 @@ final class UserControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Target User');
         self::assertSelectorTextContains('body', 'target@example.com');
     }
+
+    private function setEditRoleCheckboxes(\Symfony\Component\DomCrawler\Form $form, string ...$wantedRoles): void
+    {
+        $choiceOrder = ['ROLE_ADMIN', 'ROLE_APPROVER', 'ROLE_SUBMITTER'];
+        foreach ($choiceOrder as $i => $role) {
+            $key = "user_edit[roles][$i]";
+            if (!$form->has($key)) {
+                continue;
+            }
+            if (in_array($role, $wantedRoles, true)) {
+                $form[$key]->tick();
+            } else {
+                $form[$key]->untick();
+            }
+        }
+    }
+
+    public function testEditUserUpdatesFields(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $target = $this->makeUser('target@example.com', 'Target Old', ['ROLE_SUBMITTER']);
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/' . $target->getId()->toRfc4122() . '/edit');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Save')->form([
+            'user_edit[email]' => 'target-new@example.com',
+            'user_edit[fullName]' => 'Target New',
+        ]);
+        $this->setEditRoleCheckboxes($form, 'ROLE_APPROVER');
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $reloaded = $this->em->getRepository(User::class)->find($target->getId());
+        self::assertSame('target-new@example.com', $reloaded->getEmail());
+        self::assertSame('Target New', $reloaded->getFullName());
+        self::assertContains('ROLE_APPROVER', $reloaded->getRoles());
+        self::assertNotContains('ROLE_SUBMITTER', $reloaded->getRoles());
+    }
+
+    public function testEditSelfHidesRolesField(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/' . $admin->getId()->toRfc4122() . '/edit');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('input[name^="user_edit[roles]"]'));
+    }
+
+    public function testEditSelfCannotTamperWithRoles(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->client->loginUser($admin);
+
+        $this->client->request('POST', '/admin/users/' . $admin->getId()->toRfc4122() . '/edit', [
+            'user_edit' => [
+                'email' => 'adm@example.com',
+                'fullName' => 'Adm',
+                'roles' => ['ROLE_SUBMITTER'],
+                '_token' => 'anything',
+            ],
+        ]);
+
+        $this->em->clear();
+        $reloaded = $this->em->getRepository(User::class)->find($admin->getId());
+        self::assertContains('ROLE_ADMIN', $reloaded->getRoles());
+    }
 }
