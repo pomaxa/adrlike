@@ -14,6 +14,7 @@
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.3",
+        "knpuniversity/oauth2-client-bundle": "^2.20",
         "league/csv": "^9.16",
         "symfony/asset": "^8.0",
         "symfony/console": "^8.0",
@@ -31,6 +32,7 @@
         "symfony/uid": "^8.0",
         "symfony/validator": "^8.0",
         "symfony/yaml": "^8.0",
+        "thenetworg/oauth2-azure": "^2.2",
         "twig/twig": "^3.15"
     },
     "require-dev": {
