@@ -232,6 +232,29 @@ final class UserControllerTest extends WebTestCase
         self::assertNotContains('ROLE_SUBMITTER', $reloaded->getRoles());
     }
 
+    public function testEditUserUpdatesDepartment(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $target = $this->makeUser('target@example.com', 'Target', ['ROLE_SUBMITTER']);
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/' . $target->getId()->toRfc4122() . '/edit');
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton('Save')->form([
+            'user_edit[email]'      => 'target@example.com',
+            'user_edit[fullName]'   => 'Target',
+            'user_edit[department]' => 'Manual',
+        ]);
+        $this->setEditRoleCheckboxes($form, 'ROLE_SUBMITTER');
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $reloaded = $this->em->getRepository(User::class)->find($target->getId());
+        self::assertSame(\App\Enum\Department::Manual, $reloaded->getDepartment());
+    }
+
     public function testEditSelfHidesRolesField(): void
     {
         $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);

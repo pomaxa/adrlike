@@ -9,6 +9,7 @@
   {{ form_start(form) }}
     {{ form_row(form.email) }}
     {{ form_row(form.fullName) }}
+    {{ form_row(form.department) }}
     {% if form.roles is defined %}{{ form_row(form.roles) }}{% endif %}
     <button class="btn btn-primary" type="submit">Save</button>
     <a class="btn btn-link" href="{{ path('app_admin_user_show', {id: user.id}) }}">Cancel</a>
