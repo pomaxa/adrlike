@@ -13,7 +13,7 @@
 }
 .role-card:hover { border-color: #0d6efd; background: #f0f6ff; }
 .role-card.selected { border-color: #0d6efd; background: #e8f0fe; }
-.strength-bar { height: 4px; border-radius: 2px; transition: width .3s, background .3s; }
+.strength-bar { height: 4px; border-radius: 2px; transition: background .3s; }
 .section-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6c757d; margin-bottom: 14px; }
 .pw-req { font-size: .82rem; color: #6c757d; }
 .pw-req.ok { color: #198754; }
@@ -219,25 +219,25 @@ function setReq(id, ok) {
 }
 
 // ── Role picker ──
-const roleOrder = ['ROLE_ADMIN', 'ROLE_APPROVER', 'ROLE_SUBMITTER'];
+function roleCheckbox(role) {
+  return document.querySelector('[name^="user_create[roles]"][value="' + role + '"]');
+}
 
 function selectRole(card) {
   document.querySelectorAll('#roleGroup .role-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
   const chosen = card.dataset.role;
-  roleOrder.forEach((r, i) => {
-    const cb = document.querySelector('[name="user_create[roles][' + i + ']"]');
-    if (cb) cb.checked = (r === chosen);
+  document.querySelectorAll('[name^="user_create[roles]"]').forEach(cb => {
+    cb.checked = (cb.value === chosen);
   });
 }
 
 // Initialise visual state from checked checkboxes (handles re-render after validation error)
 document.addEventListener('DOMContentLoaded', () => {
   let initialised = false;
-  roleOrder.forEach((r, i) => {
-    const cb = document.querySelector('[name="user_create[roles][' + i + ']"]');
-    if (cb && cb.checked) {
-      const card = document.querySelector('[data-role="' + r + '"]');
+  document.querySelectorAll('[name^="user_create[roles]"]').forEach(cb => {
+    if (cb.checked) {
+      const card = document.querySelector('[data-role="' + cb.value + '"]');
       if (card) { card.classList.add('selected'); initialised = true; }
     }
   });
