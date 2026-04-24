@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\Department;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -41,6 +42,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $placeholder = false;
+
+    #[ORM\Column(type: Types::STRING, length: 16, nullable: true, enumType: Department::class)]
+    private ?Department $department = null;
 
     public function __construct(string $email, string $fullName)
     {
@@ -110,6 +114,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPlaceholder(bool $placeholder): void
     {
         $this->placeholder = $placeholder;
+    }
+
+    public function getDepartment(): ?Department
+    {
+        return $this->department;
+    }
+
+    public function setDepartment(?Department $department): void
+    {
+        $this->department = $department;
     }
 
     public function eraseCredentials(): void
