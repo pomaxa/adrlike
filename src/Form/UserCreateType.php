@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\User;
+use App\Enum\Department;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -23,6 +25,13 @@ final class UserCreateType extends AbstractType
         $builder
             ->add('email', EmailType::class, ['label' => 'Email'])
             ->add('fullName', TextType::class, ['label' => 'Full name'])
+            ->add('department', EnumType::class, [
+                'class'        => Department::class,
+                'label'        => 'Department',
+                'required'     => false,
+                'placeholder'  => '— select —',
+                'choice_label' => fn(Department $d) => $d->label(),
+            ])
             ->add('password', RepeatedType::class, [
                 'type' => PasswordType::class,
                 'mapped' => false,

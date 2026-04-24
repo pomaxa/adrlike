@@ -156,6 +156,30 @@ final class UserControllerTest extends WebTestCase
         self::assertSelectorTextContains('body', 'already exists');
     }
 
+    public function testCreateUserWithDepartmentSavesDepartment(): void
+    {
+        $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request('GET', '/admin/users/new');
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton('Create user')->form([
+            'user_create[email]'             => 'dept@example.com',
+            'user_create[fullName]'          => 'Dept User',
+            'user_create[password][first]'   => 'secretpass',
+            'user_create[password][second]'  => 'secretpass',
+            'user_create[department]'        => 'Risk',
+        ]);
+        $this->setRoleCheckboxes($form, 'ROLE_SUBMITTER');
+        $this->client->submit($form);
+        self::assertResponseRedirects('/admin/users');
+
+        $created = $this->em->getRepository(User::class)->findOneBy(['email' => 'dept@example.com']);
+        self::assertNotNull($created);
+        self::assertSame(\App\Enum\Department::Risk, $created->getDepartment());
+    }
+
     public function testShowUserPage(): void
     {
         $admin = $this->makeUser('adm@example.com', 'Adm', ['ROLE_ADMIN']);
