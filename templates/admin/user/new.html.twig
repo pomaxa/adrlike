@@ -1,16 +1,250 @@
 {% extends 'base.html.twig' %}
 {% block title %}New user · Admin{% endblock %}
+
+{% block stylesheets %}
+<style>
+.role-card {
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  user-select: none;
+}
+.role-card:hover { border-color: #0d6efd; background: #f0f6ff; }
+.role-card.selected { border-color: #0d6efd; background: #e8f0fe; }
+.strength-bar { height: 4px; border-radius: 2px; transition: width .3s, background .3s; }
+.section-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6c757d; margin-bottom: 14px; }
+.pw-req { font-size: .82rem; color: #6c757d; }
+.pw-req.ok { color: #198754; }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="container" style="max-width: 640px;">
-  <h1 class="mb-3"><i class="bi bi-person-plus"></i> New user</h1>
+<div class="container" style="max-width: 680px;">
+
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ path('app_admin_user_index') }}">Users</a></li>
+      <li class="breadcrumb-item active">New user</li>
+    </ol>
+  </nav>
+
+  <h4 class="fw-semibold mb-4"><i class="bi bi-person-plus me-2 text-primary"></i>New user</h4>
+
   {{ form_start(form) }}
-    {{ form_row(form.email) }}
-    {{ form_row(form.fullName) }}
-    {{ form_row(form.password.first) }}
-    {{ form_row(form.password.second) }}
-    {{ form_row(form.roles) }}
-    <button class="btn btn-primary" type="submit">Create user</button>
-    <a class="btn btn-link" href="{{ path('app_admin_user_index') }}">Cancel</a>
+
+  {# ── Card 1: Identity ── #}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <p class="section-label"><i class="bi bi-person me-1"></i>Identity</p>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small" for="{{ form.fullName.vars.id }}">Full name</label>
+        <div class="input-group {% if form.fullName.vars.errors|length %}has-validation{% endif %}">
+          <span class="input-group-text bg-white text-muted"><i class="bi bi-person"></i></span>
+          {{ form_widget(form.fullName, {attr: {class: 'form-control' ~ (form.fullName.vars.errors|length ? ' is-invalid' : '')}}) }}
+          {% for error in form.fullName.vars.errors %}
+            <div class="invalid-feedback">{{ error.message }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small" for="{{ form.email.vars.id }}">Email</label>
+        <div class="input-group {% if form.email.vars.errors|length %}has-validation{% endif %}">
+          <span class="input-group-text bg-white text-muted"><i class="bi bi-envelope"></i></span>
+          {{ form_widget(form.email, {attr: {class: 'form-control' ~ (form.email.vars.errors|length ? ' is-invalid' : '')}}) }}
+          {% for error in form.email.vars.errors %}
+            <div class="invalid-feedback">{{ error.message }}</div>
+          {% endfor %}
+        </div>
+        <div class="form-text">Used to log in and receive follow-up reminders.</div>
+      </div>
+
+      <div class="mb-1">
+        <label class="form-label fw-semibold small" for="{{ form.department.vars.id }}">Department <span class="text-muted fw-normal">(optional)</span></label>
+        <div class="input-group">
+          <span class="input-group-text bg-white text-muted"><i class="bi bi-building"></i></span>
+          {{ form_widget(form.department, {attr: {class: 'form-select'}}) }}
+        </div>
+        {{ form_errors(form.department) }}
+      </div>
+    </div>
+  </div>
+
+  {# ── Card 2: Access ── #}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-4">
+      <p class="section-label"><i class="bi bi-shield-lock me-1"></i>Access</p>
+
+      {# Password #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small" for="pw_first">Password</label>
+        <div class="input-group {% if form.password.vars.errors|length %}has-validation{% endif %}">
+          <span class="input-group-text bg-white text-muted"><i class="bi bi-lock"></i></span>
+          {{ form_widget(form.password.first, {attr: {
+            class: 'form-control' ~ (form.password.vars.errors|length ? ' is-invalid' : ''),
+            id: 'pw_first',
+            oninput: 'updateStrength(this.value)'
+          }}) }}
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePw('pw_first', this)" tabindex="-1" aria-label="Show password">
+            <i class="bi bi-eye"></i>
+          </button>
+          {% for error in form.password.vars.errors %}
+            <div class="invalid-feedback">{{ error.message }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="mt-2" id="strengthWrap" style="display:none">
+          <div class="d-flex gap-1 mb-1">
+            <div class="strength-bar flex-fill bg-secondary" id="s1"></div>
+            <div class="strength-bar flex-fill bg-secondary" id="s2"></div>
+            <div class="strength-bar flex-fill bg-secondary" id="s3"></div>
+            <div class="strength-bar flex-fill bg-secondary" id="s4"></div>
+          </div>
+          <span id="strengthLabel" class="form-text"></span>
+        </div>
+
+        <div class="mt-2 d-flex gap-3 flex-wrap">
+          <span class="pw-req" id="req-len"><i class="bi bi-x-circle me-1"></i>8+ characters</span>
+          <span class="pw-req" id="req-upper"><i class="bi bi-x-circle me-1"></i>Uppercase letter</span>
+          <span class="pw-req" id="req-digit"><i class="bi bi-x-circle me-1"></i>Number</span>
+        </div>
+      </div>
+
+      {# Repeat password #}
+      <div class="mb-4">
+        <label class="form-label fw-semibold small" for="pw_second">Repeat password</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white text-muted"><i class="bi bi-lock-fill"></i></span>
+          {{ form_widget(form.password.second, {attr: {class: 'form-control', id: 'pw_second'}}) }}
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePw('pw_second', this)" tabindex="-1" aria-label="Show password">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      {# Role picker — visual cards; hidden checkboxes do the actual submitting #}
+      <p class="section-label"><i class="bi bi-shield me-1"></i>Role</p>
+
+      <div class="d-none">
+        {{ form_row(form.roles) }}
+      </div>
+
+      <div class="d-flex flex-column gap-2" id="roleGroup">
+        <div class="role-card" data-role="ROLE_SUBMITTER" onclick="selectRole(this)">
+          <div class="d-flex align-items-start gap-2">
+            <span class="badge text-bg-secondary mt-1" style="font-size:.7rem">Submitter</span>
+            <div>
+              <div class="fw-semibold small">Submitter</div>
+              <div class="text-muted" style="font-size:.82rem">Can create and edit their own decisions.</div>
+            </div>
+          </div>
+        </div>
+        <div class="role-card" data-role="ROLE_APPROVER" onclick="selectRole(this)">
+          <div class="d-flex align-items-start gap-2">
+            <span class="badge text-bg-warning mt-1" style="font-size:.7rem">Approver</span>
+            <div>
+              <div class="fw-semibold small">Approver</div>
+              <div class="text-muted" style="font-size:.82rem">Can approve or reject any decision. Includes Submitter permissions.</div>
+            </div>
+          </div>
+        </div>
+        <div class="role-card" data-role="ROLE_ADMIN" onclick="selectRole(this)">
+          <div class="d-flex align-items-start gap-2">
+            <span class="badge text-bg-danger mt-1" style="font-size:.7rem">Admin</span>
+            <div>
+              <div class="fw-semibold small">Admin</div>
+              <div class="text-muted" style="font-size:.82rem">Full access — manage users, import CSV, and all Approver permissions.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if form.roles.vars.errors|length %}
+        <div class="text-danger small mt-2">
+          {% for error in form.roles.vars.errors %}{{ error.message }}{% endfor %}
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-5">
+    <button class="btn btn-primary px-4" type="submit"><i class="bi bi-person-check me-1"></i>Create user</button>
+    <a class="btn btn-outline-secondary" href="{{ path('app_admin_user_index') }}">Cancel</a>
+  </div>
+
   {{ form_end(form) }}
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+// ── Password show/hide ──
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  const isText = inp.type === 'text';
+  inp.type = isText ? 'password' : 'text';
+  btn.querySelector('i').className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+// ── Password strength ──
+function updateStrength(v) {
+  const wrap = document.getElementById('strengthWrap');
+  wrap.style.display = v.length ? 'block' : 'none';
+  const bars = ['s1','s2','s3','s4'].map(id => document.getElementById(id));
+  let score = 0;
+  if (v.length >= 8) score++;
+  if (/[A-Z]/.test(v)) score++;
+  if (/[0-9]/.test(v)) score++;
+  if (/[^A-Za-z0-9]/.test(v)) score++;
+  const colors = ['#dc3545','#fd7e14','#ffc107','#198754'];
+  const labels = ['Too weak','Weak','Good','Strong'];
+  bars.forEach((b, i) => {
+    b.style.background = i < score ? colors[score - 1] : '#dee2e6';
+  });
+  const lbl = document.getElementById('strengthLabel');
+  lbl.textContent = score ? labels[score - 1] : '';
+  lbl.style.color   = score ? colors[score - 1] : '';
+  setReq('req-len',   v.length >= 8);
+  setReq('req-upper', /[A-Z]/.test(v));
+  setReq('req-digit', /[0-9]/.test(v));
+}
+function setReq(id, ok) {
+  const el = document.getElementById(id);
+  el.classList.toggle('ok', ok);
+  el.querySelector('i').className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle me-1';
+}
+
+// ── Role picker ──
+const roleOrder = ['ROLE_ADMIN', 'ROLE_APPROVER', 'ROLE_SUBMITTER'];
+
+function selectRole(card) {
+  document.querySelectorAll('#roleGroup .role-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const chosen = card.dataset.role;
+  roleOrder.forEach((r, i) => {
+    const cb = document.querySelector('[name="user_create[roles][' + i + ']"]');
+    if (cb) cb.checked = (r === chosen);
+  });
+}
+
+// Initialise visual state from checked checkboxes (handles re-render after validation error)
+document.addEventListener('DOMContentLoaded', () => {
+  let initialised = false;
+  roleOrder.forEach((r, i) => {
+    const cb = document.querySelector('[name="user_create[roles][' + i + ']"]');
+    if (cb && cb.checked) {
+      const card = document.querySelector('[data-role="' + r + '"]');
+      if (card) { card.classList.add('selected'); initialised = true; }
+    }
+  });
+  if (!initialised) {
+    const def = document.querySelector('[data-role="ROLE_SUBMITTER"]');
+    if (def) def.classList.add('selected');
+  }
+});
+</script>
 {% endblock %}
