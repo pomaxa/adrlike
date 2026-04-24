@@ -87,7 +87,7 @@
   Open the generated migration file. The `up()` method must contain:
 
   ```sql
-  ALTER TABLE users ADD department VARCHAR(20) DEFAULT NULL
+  ALTER TABLE users ADD department VARCHAR(16) DEFAULT NULL
   ```
 
   And the `down()` method must contain:
