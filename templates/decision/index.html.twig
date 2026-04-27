@@ -15,8 +15,8 @@
     <div class="col-auto">
         <select name="product" class="form-select">
             <option value="">Product (any)</option>
-            {% for p in enum('App\\Enum\\Product').cases %}
-                <option value="{{ p.value }}" {{ filters.product == p.value ? 'selected' }}>{{ p.label }}</option>
+            {% for p in products %}
+                <option value="{{ p.id }}" {{ filters.product is same as(p) ? 'selected' }}>{{ p.name }}</option>
             {% endfor %}
         </select>
     </div>

@@ -8,6 +8,7 @@ use App\Entity\Decision;
 use App\Enum\FollowUpStatus;
 use App\Form\DecisionType;
 use App\Repository\DecisionRepository;
+use App\Repository\ProductRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,10 +21,13 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class DecisionController extends AbstractController
 {
     #[Route('', name: 'app_decision_index', methods: ['GET'])]
-    public function index(Request $request, DecisionRepository $repository): Response
+    public function index(Request $request, DecisionRepository $repository, ProductRepository $productRepo): Response
     {
+        $productId = $request->query->get('product');
+        $product = $productId ? $productRepo->find($productId) : null;
+
         $filters = [
-            'product' => $request->query->get('product'),
+            'product' => $product,
             'department' => $request->query->get('department'),
             'status' => $request->query->get('status'),
             'q' => $request->query->get('q'),
@@ -39,6 +43,7 @@ final class DecisionController extends AbstractController
         return $this->render('decision/index.html.twig', [
             'decisions' => $decisions,
             'filters' => $filters,
+            'products' => $productRepo->findAllOrderedByName(),
         ]);
     }
 

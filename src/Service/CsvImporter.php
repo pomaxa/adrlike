@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Decision;
+use App\Entity\Product;
 use App\Entity\User;
 use App\Enum\Department;
 use App\Enum\FollowUpStatus;
-use App\Enum\Product;
 use App\Repository\DecisionRepository;
+use App\Repository\ProductRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Csv\Reader;
@@ -36,6 +37,7 @@ final class CsvImporter
         private readonly EntityManagerInterface $em,
         private readonly DecisionRepository $decisions,
         private readonly UserRepository $users,
+        private readonly ProductRepository $products,
     ) {
     }
 
@@ -112,7 +114,12 @@ final class CsvImporter
 
             $decision = new Decision();
             $decision->setDecidedAt($decidedAt);
-            $decision->setProduct(self::resolveProduct((string) ($row['Product'] ?? '')));
+            $product = $this->resolveProduct((string) ($row['Product'] ?? ''));
+            if ($product === null) {
+                $result->warnings[] = "Row {$rowNumber}: could not resolve product — skipped.";
+                continue;
+            }
+            $decision->setProduct($product);
             $decision->setDepartment(self::resolveDepartment((string) ($row['Department'] ?? '')));
             $decision->setClientsType(self::nonEmpty($row['Clients type'] ?? null) ?? 'All');
             $decision->setChangeDescription($change);
@@ -274,16 +281,25 @@ final class CsvImporter
         return ['raw' => $trimmed];
     }
 
-    private static function resolveProduct(string $raw): Product
+    private function resolveProduct(string $raw): ?Product
     {
         $raw = trim($raw);
 
-        return match (mb_strtolower($raw)) {
-            'leasing' => Product::Leasing,
-            'installment' => Product::Installment,
-            'leaseback' => Product::Leaseback,
-            default => Product::AllProduct,
+        // Try exact match first (covers user-added products)
+        $product = $this->products->findOneByName($raw);
+        if ($product !== null) {
+            return $product;
+        }
+
+        // Normalise legacy aliases from the original enum
+        $canonical = match (mb_strtolower($raw)) {
+            'leasing' => 'Leasing',
+            'installment' => 'Installment',
+            'leaseback' => 'Leaseback',
+            default => 'All Product',
         };
+
+        return $this->products->findOneByName($canonical);
     }
 
     private static function resolveDepartment(string $raw): Department

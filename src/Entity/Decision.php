@@ -6,7 +6,6 @@ namespace App\Entity;
 
 use App\Enum\Department;
 use App\Enum\FollowUpStatus;
-use App\Enum\Product;
 use App\Repository\DecisionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -32,8 +31,9 @@ class Decision
     #[Assert\NotNull]
     private \DateTimeImmutable $decidedAt;
 
-    #[ORM\Column(type: Types::STRING, length: 32, enumType: Product::class)]
-    private Product $product;
+    #[ORM\ManyToOne(targetEntity: Product::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Product $product = null;
 
     #[ORM\Column(type: Types::STRING, length: 16, enumType: Department::class)]
     private Department $department;
@@ -107,7 +107,6 @@ class Decision
         $this->createdAt = $now;
         $this->updatedAt = $now;
         $this->decidedAt = $now;
-        $this->product = Product::AllProduct;
         $this->department = Department::Risk;
         $this->changeDescription = '';
         $this->history = new ArrayCollection();
@@ -134,7 +133,7 @@ class Decision
         $this->decidedAt = $decidedAt;
     }
 
-    public function getProduct(): Product
+    public function getProduct(): ?Product
     {
         return $this->product;
     }

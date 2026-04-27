@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Decision;
+use App\Entity\Product;
 use App\Enum\FollowUpStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -26,7 +27,7 @@ class DecisionRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param array{product?: ?string, department?: ?string, status?: ?string, q?: ?string} $criteria
+     * @param array{product?: ?Product, department?: ?string, status?: ?string, q?: ?string} $criteria
      */
     public function queryByFilters(array $criteria): QueryBuilder
     {

@@ -6,8 +6,8 @@ namespace App\Controller;
 
 use App\Enum\Department;
 use App\Enum\FollowUpStatus;
-use App\Enum\Product;
 use App\Repository\DecisionRepository;
+use App\Repository\ProductRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -16,8 +16,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_SUBMITTER')]
 final class DashboardController extends AbstractController
 {
-    public function __construct(private readonly DecisionRepository $decisions)
-    {
+    public function __construct(
+        private readonly DecisionRepository $decisions,
+        private readonly ProductRepository $products,
+    ) {
     }
 
     #[Route('/', name: 'app_dashboard', methods: ['GET'])]
@@ -40,11 +42,16 @@ final class DashboardController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        $byProduct = $this->decisions->createQueryBuilder('d')
-            ->select('d.product AS product, COUNT(d.id) AS cnt')
+        $rawProductCounts = $this->decisions->createQueryBuilder('d')
+            ->select('IDENTITY(d.product) AS pid, COUNT(d.id) AS cnt')
             ->groupBy('d.product')
             ->getQuery()
             ->getArrayResult();
+        $productCountMap = array_column($rawProductCounts, 'cnt', 'pid');
+        $byProduct = array_map(
+            static fn ($p) => ['label' => $p->label(), 'count' => (int) ($productCountMap[(string) $p->getId()] ?? 0)],
+            $this->products->findAllOrderedByName(),
+        );
 
         $byDepartment = $this->decisions->createQueryBuilder('d')
             ->select('d.department AS department, COUNT(d.id) AS cnt')
@@ -62,7 +69,7 @@ final class DashboardController extends AbstractController
             'overdue' => $overdue,
             'upcoming' => $upcoming,
             'recent' => $recent,
-            'by_product' => self::normalizeCounts($byProduct, 'product', Product::cases()),
+            'by_product' => $byProduct,
             'by_department' => self::normalizeCounts($byDepartment, 'department', Department::cases()),
             'status_counts' => $this->statusCounts(),
         ]);

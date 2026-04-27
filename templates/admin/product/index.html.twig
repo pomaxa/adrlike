@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+{% block title %}Products · Admin{% endblock %}
+{% block body %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><i class="bi bi-box-seam"></i> Products</h1>
+    <a class="btn btn-primary" href="{{ path('app_admin_product_new') }}"><i class="bi bi-plus-lg"></i> New product</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr>
+        <th>Name</th><th>Decisions</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="fw-semibold">{{ row.product.name }}</td>
+          <td>{{ row.count }}</td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-secondary" href="{{ path('app_admin_product_edit', {id: row.product.id}) }}">Edit</a>
+              {% if row.count == 0 %}
+                <form method="post" action="{{ path('app_admin_product_delete', {id: row.product.id}) }}" class="d-inline"
+                      onsubmit="return confirm('Delete product {{ row.product.name|e('js') }}?')">
+                  <input type="hidden" name="_token" value="{{ csrf_token('delete_product_' ~ row.product.id) }}">
+                  <button class="btn btn-outline-danger">Delete</button>
+                </form>
+              {% else %}
+                <button class="btn btn-outline-danger" disabled title="Has linked decisions">Delete</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="text-center text-muted">No products yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

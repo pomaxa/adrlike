@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\Decision;
+use App\Entity\Product;
 use App\Entity\User;
 use App\Enum\Department;
-use App\Enum\Product;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -26,9 +26,10 @@ final class DecisionType extends AbstractType
                 'widget' => 'single_text',
                 'label' => 'Decision date',
             ])
-            ->add('product', EnumType::class, [
+            ->add('product', EntityType::class, [
                 'class' => Product::class,
-                'choice_label' => static fn (Product $p) => $p->label(),
+                'choice_label' => 'name',
+                'placeholder' => '— select —',
             ])
             ->add('department', EnumType::class, [
                 'class' => Department::class,
